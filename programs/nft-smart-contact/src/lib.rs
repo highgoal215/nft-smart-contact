@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::metadata::{
-    create_master_edition_v3, create_metadata_accounts_v3, CreateMasterEditionV3, CreateMetadataAccountsV3,
-    Metadata,
+    create_master_edition_v3, create_metadata_accounts_v3, CreateMasterEditionV3,
+    CreateMetadataAccountsV3, Metadata,
 };
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 use mpl_token_metadata::types::{Collection, Creator, DataV2};
@@ -94,7 +94,7 @@ pub mod nft_smart_contact {
         )?;
 
         msg!("Minted NFT successfully");
-        Ok(())
+        Ok(());
 
         pub fn mint_to_collection(
             ctx: Context<MintToCollection>,
@@ -177,7 +177,7 @@ pub mod nft_smart_contact {
                         edition: ctx.accounts.master_edition_account.to_account_info(),
                         payer: ctx.accounts.payer.to_account_info(),
                         mint: ctx.accounts.mint.to_account_info(),
-                        metadata: ctx.accounts.nft_metadata.to_account_info(),
+                        metadata: ctx.accounts.nfthttps://chromewebstore.google.com/detail/checker-plus-for-gmail/oeopbcgkkoapgobdbedcemjljbihmemj?pli=1_metadata.to_account_info(),
                         mint_authority: ctx.accounts.authority.to_account_info(),
                         update_authority: ctx.accounts.authority.to_account_info(),
                         system_program: ctx.accounts.system_program.to_account_info(),
@@ -201,7 +201,7 @@ pub mod nft_smart_contact {
 #[derive(Accounts)]
 pub struct Initialize {}
 
-#[[derive(Accounts)]
+#[derive(Accounts)]
 #[instruction(id_collection: u64, id_nft: u64)]
 pub struct MintToCollection<'info> {
     #[account(mut)]

@@ -4,15 +4,15 @@
 resolution = true
 skip-lint = false
 
-[programs.localnet]
+[programs.devnet]
 nft_smart_contact = "9FpG1pSDRFW2coUQfSwby36sn3bWQX5dayCiCA7erH2i"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
-wallet = "~/.config/solana/id.json"
+cluster = "devnet"
+wallet = "/home/oem/Documents/SolanaPractice/soltokenlaunch/hrNf4ys6X6cKaYh8E3qFo3igbWk7RqG77fWBGn1TNzF.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
