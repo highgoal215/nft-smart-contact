@@ -1,49 +1,59 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::metadata::{
-    create_master_edition_v3, create_metadata_accounts_v3, CreateMasterEditionV3,
-    CreateMetadataAccountsV3, Metadata,
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    metadata::{
+        create_master_edition_v3, create_metadata_accounts_v3, CreateMasterEditionV3,
+        CreateMetadataAccountsV3, Metadata, MetadataAccount,
+        mpl_token_metadata::{
+            types::DataV2
+        }
+    },
+    token::{mint_to, Mint, MintTo, Token, TokenAccount},
 };
-use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
-use mpl_token_metadata::types::{Collection, Creator, DataV2};
+use mpl_token_metadata::{
+    pda::{find_master_edition_account, find_metadata_account},
+};
 declare_id!("9FpG1pSDRFW2coUQfSwby36sn3bWQX5dayCiCA7erH2i");
 
 #[program]
 pub mod nft_smart_contact {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        msg!("Greetings from: {:?}", ctx.program_id);
-        Ok(())
-    }
-    pub fn create_single_nft(
-        ctx: Context<CreateNFT>,
-        id:u64,
-        name: String,
-        symbol: String,
-        uri: String,
-        price:f32,
-        cant: u64,
-    )->Result<()> {
-        
+    // pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    //     msg!("Greetings from: {:?}", ctx.program_id);
+    //     Ok(())
+    // }
+pub fn create_single_nft(
+    ctx: Context<CreateNFT>,
+    id: u64,
+    name: String,
+    symbol: String,
+    uri: String,
+    price: f32,
+    cant: u64,
+    ) -> Result<()> {
     msg!("Creating seeds");
-    let id_bytes=id.to_le_bytes();
-    let seeds=&["mint".as_bytes(), id_bytes.as_ref(), &[ctx.bump.mint]];
+            let id_bytes = id.to_le_bytes();
+            let seeds = &["mint".as_bytes(),id_bytes.as_ref(),&[ctx.bumps.mint],
+            ];
+    
         msg!("Run mint_to");
 
-        mint_to (
-            CpiContext::new_with_signer (
-                ctx.aacounts.token_program.to_account_info(),
+        mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
                 MintTo {
-                    authority: ctx.aacounts.authority.to_account_info(),
+                    authority: ctx.accounts.authority.to_account_info(),
                     to: ctx.accounts.token_account.to_account_info(),
+                    mint: ctx.accounts.mint.to_account_info(),
                 },
-                &[&seeeds[..]],
+                &[&seeds[..]],
             ),
-            1,//1 token
+            1, // 1 token
         )?;
-        
-        msg!("Run create metadata accounts_v3");
+
+        msg!("Run create metadata accounts v3");
+
         create_metadata_accounts_v3(
             CpiContext::new_with_signer(
                 ctx.accounts.metadata_program.to_account_info(),
@@ -65,6 +75,104 @@ pub mod nft_smart_contact {
                 seller_fee_basis_points: 0,
                 creators: None,
                 collection: None,
+                uses: None,
+            },
+            true,
+            true,
+            None,
+        )?;
+    
+        msg!("Run create master edition v3");
+
+        create_master_edition_v3(
+            CpiContext::new_with_signer(
+                ctx.accounts.metadata_program.to_account_info(),
+                CreateMasterEditionV3 {
+                    edition: ctx.accounts.master_edition_account.to_account_info(),
+                    payer: ctx.accounts.payer.to_account_info(),
+                    mint: ctx.accounts.mint.to_account_info(),
+                    metadata: ctx.accounts.nft_metadata.to_account_info(),
+                    mint_authority: ctx.accounts.authority.to_account_info(),
+                    update_authority: ctx.accounts.authority.to_account_info(),
+                    system_program: ctx.accounts.system_program.to_account_info(),
+                    token_program: ctx.accounts.token_program.to_account_info(),
+                    rent: ctx.accounts.rent.to_account_info(),
+                },
+                &[&seeds[..]],
+            ),
+            Some(1),
+        )?;
+
+        msg!("Minted NFT successfully");
+
+        Ok(())
+    }
+
+    pub fn mint_to_collection(
+        ctx: Context<MintToCollection>,
+        id_collection: u64,
+        id_nft: u64,
+        name: String,
+        symbol: String,
+        uri: String,
+        price: f32,
+        cant: u64,
+    ) -> Result<()> {
+        msg!("Creating seeds");
+        let id_bytes = id_collection.to_le_bytes();
+        let id_nft_bytes = id_nft.to_le_bytes();
+        let seeds = &[
+            "mint".as_bytes(),
+            id_bytes.as_ref(),
+            id_nft_bytes.as_ref(),
+            &[ctx.bumps.mint],
+        ];
+
+        msg!("Run mint_to");
+
+        mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                MintTo {
+                    authority: ctx.accounts.authority.to_account_info(),
+                    to: ctx.accounts.token_account.to_account_info(),
+                    mint: ctx.accounts.mint.to_account_info(),
+                },
+                &[&seeds[..]],
+            ),
+            1, // 1 token
+        )?;
+
+        msg!("Run create metadata accounts v3");
+
+        create_metadata_accounts_v3(
+            CpiContext::new_with_signer(
+                ctx.accounts.metadata_program.to_account_info(),
+                CreateMetadataAccountsV3 {
+                    payer: ctx.accounts.payer.to_account_info(),
+                    mint: ctx.accounts.mint.to_account_info(),
+                    metadata: ctx.accounts.nft_metadata.to_account_info(),
+                    mint_authority: ctx.accounts.authority.to_account_info(),
+                    update_authority: ctx.accounts.authority.to_account_info(),
+                    system_program: ctx.accounts.system_program.to_account_info(),
+                    rent: ctx.accounts.rent.to_account_info(),
+                },
+                &[&seeds[..]],
+            ),
+            DataV2 {
+                name,
+                symbol,
+                uri,
+                seller_fee_basis_points: 0,
+                creators: Some(vec![Creator {
+                    address: ctx.accounts.payer.key(),
+                    verified: true,
+                    share: 100,
+                }]),
+                collection: Some(Collection {
+                    key: ctx.accounts.collection.key(),
+                    verified: false,
+                }),
                 uses: None,
             },
             true,
@@ -94,116 +202,15 @@ pub mod nft_smart_contact {
         )?;
 
         msg!("Minted NFT successfully");
-        Ok(());
 
-        pub fn mint_to_collection(
-            ctx: Context<MintToCollection>,
-            id_collection: u64,
-            id_nft: u64,
-            name: String,
-            symbol: String,
-            uri: String,
-            price: f32,
-            cant: u64,
-        ) -> Result<()> {
-            msg!("Creating seeds");
-            let id_bytes = id_collection.to_le_bytes();
-            let id_nft_bytes = id_nft.to_le_bytes();
-            let seeds = &[
-                "mint".as_bytes(),
-                id_bytes.as_ref(),
-                id_nft_bytes.as_ref(),
-                &[ctx.bumps.mint],
-            ];
-    
-            msg!("Run mint_to");
-    
-            mint_to(
-                CpiContext::new_with_signer(
-                    ctx.accounts.token_program.to_account_info(),
-                    MintTo {
-                        authority: ctx.accounts.authority.to_account_info(),
-                        to: ctx.accounts.token_account.to_account_info(),
-                        mint: ctx.accounts.mint.to_account_info(),
-                    },
-                    &[&seeds[..]],
-                ),
-                1, // 1 token
-            )?;
-    
-            msg!("Run create metadata accounts v3");
-    
-            create_metadata_accounts_v3(
-                CpiContext::new_with_signer(
-                    ctx.accounts.metadata_program.to_account_info(),
-                    CreateMetadataAccountsV3 {
-                        payer: ctx.accounts.payer.to_account_info(),
-                        mint: ctx.accounts.mint.to_account_info(),
-                        metadata: ctx.accounts.nft_metadata.to_account_info(),
-                        mint_authority: ctx.accounts.authority.to_account_info(),
-                        update_authority: ctx.accounts.authority.to_account_info(),
-                        system_program: ctx.accounts.system_program.to_account_info(),
-                        rent: ctx.accounts.rent.to_account_info(),
-                    },
-                    &[&seeds[..]],
-                ),
-                DataV2 {
-                    name,
-                    symbol,
-                    uri,
-                    seller_fee_basis_points: 0,
-                    creators: Some(vec![Creator {
-                        address: ctx.accounts.payer.key(),
-                        verified: true,
-                        share: 100,
-                    }]),
-                    collection: Some(Collection {
-                        key: ctx.accounts.collection.key(),
-                        verified: false,
-                    }),
-                    uses: None,
-                },
-                true,
-                true,
-                None,
-            )?;
-    
-            msg!("Run create master edition v3");
-    
-            create_master_edition_v3(
-                CpiContext::new_with_signer(
-                    ctx.accounts.metadata_program.to_account_info(),
-                    CreateMasterEditionV3 {
-                        edition: ctx.accounts.master_edition_account.to_account_info(),
-                        payer: ctx.accounts.payer.to_account_info(),
-                        mint: ctx.accounts.mint.to_account_info(),
-                        metadata: ctx.accounts.nfthttps://chromewebstore.google.com/detail/checker-plus-for-gmail/oeopbcgkkoapgobdbedcemjljbihmemj?pli=1_metadata.to_account_info(),
-                        mint_authority: ctx.accounts.authority.to_account_info(),
-                        update_authority: ctx.accounts.authority.to_account_info(),
-                        system_program: ctx.accounts.system_program.to_account_info(),
-                        token_program: ctx.accounts.token_program.to_account_info(),
-                        rent: ctx.accounts.rent.to_account_info(),
-                    },
-                    &[&seeds[..]],
-                ),
-                Some(1),
-            )?;
-    
-            msg!("Minted NFT successfully");
-    
-            Ok(())
-        }
-
+        Ok(())
     }
 
 }
 
 #[derive(Accounts)]
-pub struct Initialize {}
-
-#[derive(Accounts)]
-#[instruction(id_collection: u64, id_nft: u64)]
-pub struct MintToCollection<'info> {
+#[instruction(id: u64)]
+pub struct CreateNFT<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(mut)]
@@ -214,9 +221,7 @@ pub struct MintToCollection<'info> {
     mint::decimals = 0,
     mint::authority = authority,
     mint::freeze_authority = authority,
-    seeds = ["mint".as_bytes(), 
-             id_collection.to_le_bytes().as_ref(),
-             id_nft.to_le_bytes().as_ref()], 
+    seeds = ["mint".as_bytes(), id.to_le_bytes().as_ref()], 
     bump,
     )]
     pub mint: Account<'info, Mint>,
@@ -255,6 +260,64 @@ pub struct MintToCollection<'info> {
         bump,
         seeds::program = metadata_program.key()
     )]
+    /// CHECK:
+    pub nft_metadata: UncheckedAccount<'info>,
+}
+    
+#[derive(Accounts)]
+#[instruction(id_collection: u64, id_nft: u64)]
+pub struct MintToCollection<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account( 
+    init,
+    payer = payer, 
+    mint::decimals = 0,
+    mint::authority = authority,
+    mint::freeze_authority = authority,
+    seeds = ["mint".as_bytes(), 
+            id_collection.to_le_bytes().as_ref(),
+            id_nft.to_le_bytes().as_ref()], 
+    bump,
+    )]
+    pub mint: Account<'info, Mint>,
+#[account(
+    init_if_needed,
+    payer = payer,
+    associated_token::mint = mint,
+    associated_token::authority = payer,
+)]
+    pub token_account: Account<'info, TokenAccount>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub rent: Sysvar<'info, Rent>,
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+    pub metadata_program: Program<'info, Metadata>,
+#[account(
+    mut,
+    seeds = [
+        b"metadata".as_ref(),
+        metadata_program.key().as_ref(),
+        mint.key().as_ref(),
+        b"edition".as_ref(),
+    ],
+    bump,
+    seeds::program = metadata_program.key()
+)]
+        /// CHECK:
+    pub master_edition_account: UncheckedAccount<'info>,
+#[account(
+    mut,
+    seeds = [
+        b"metadata".as_ref(),
+        metadata_program.key().as_ref(),
+        mint.key().as_ref(),
+    ],
+    bump,
+    seeds::program = metadata_program.key()
+)]
     /// CHECK:
     pub nft_metadata: UncheckedAccount<'info>,
     /// CHECK:
