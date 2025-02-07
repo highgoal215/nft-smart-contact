@@ -12,10 +12,6 @@ declare_id!("DtepcQcpNbx4gzMRxs5HJqtmwBvj7hw1eqnvuWNQwaVd");
 pub mod nft_smart_contact {
     use super::*;
 
-    // pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-    //     msg!("Greetings from: {:?}", ctx.program_id);
-    //     Ok(())
-    // }
     pub fn create_single_nft(
         ctx: Context<CreateNFT>,
         id: u64,
@@ -203,7 +199,7 @@ pub mod nft_smart_contact {
     }
 
 }
-
+///program definition
 #[derive(Accounts)]
 #[instruction(id: u64)]
 pub struct CreateNFT<'info> {
