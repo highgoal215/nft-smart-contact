@@ -244,7 +244,7 @@ pub struct CreateNFT<'info> {
         bump,
         seeds::program = metadata_program.key()
     )]
-    /// CHECK:
+    /// CHECK: 
     pub master_edition_account: UncheckedAccount<'info>,
     #[account(
         mut,
@@ -302,7 +302,7 @@ pub struct MintToCollection<'info> {
         bump,
         seeds::program = metadata_program.key()
     )]
-    /// CHECK:
+    /// CHECK: 
     pub master_edition_account: UncheckedAccount<'info>,
     #[account(
         mut,
